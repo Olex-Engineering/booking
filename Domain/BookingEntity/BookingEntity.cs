@@ -1,6 +1,6 @@
 namespace Booking.Domain.BookingEntity;
 
-public sealed class BookingEnitity
+public sealed class BookingEntity
 {
   public const int MaxBookingDays = 30;
   
@@ -13,7 +13,7 @@ public sealed class BookingEnitity
 
   public bool IsCompleted => DateTimeOffset.UtcNow > To && !IsCanceled;
 
-  public BookingEnitity(
+  public BookingEntity(
     Guid resourceId, Guid userId, DateTimeOffset from, DateTimeOffset to
   )
   {

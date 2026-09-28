@@ -1,5 +1,6 @@
 namespace Booking.API.Endpoints;
 
+using System.Diagnostics;
 using Booking.API.DTO.Booking;
 using Booking.API.Filters;
 using Booking.Application.Bookings;
@@ -8,20 +9,21 @@ using Booking.Domain.BookingEntity;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 
-internal static class ResourceEndpoints
+internal static class BookingEndpoints
 {
   public static IEndpointRouteBuilder MapBookingsEndpoints(this IEndpointRouteBuilder app)
   {
-    var group = app.MapGroup("/booking").AddEndpointFilter(async (context, next) =>
+    var group = app.MapGroup("/bookings").AddEndpointFilter(async (context, next) =>
     {
       var endpoint = context.HttpContext.Request.Path;
       var method = context.HttpContext.Request.Method;
-      var startTime = DateTime.Now;
+      var watch = new Stopwatch();
+      watch.Start();
 
       var result = await next(context);
 
-      var endTime = DateTime.Now;
-      var requestTime = (endTime - startTime).Milliseconds;
+      watch.Stop();
+      var requestTime = watch.ElapsedMilliseconds;
 
       Console.WriteLine($"Request data: method {method}, endpoint: {endpoint}, time: {requestTime}");
       return result;
@@ -37,15 +39,15 @@ internal static class ResourceEndpoints
     return app;
   }
 
-  private static async Task<Results<Created<CreateBookingResponse>,  BadRequest>>  CreateBooking(CreateBookingRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<Created<CreateBookingResponse>,  BadRequest, Conflict>>  CreateBooking(CreateBookingRequest request, IGlobalStateHandler globalStateHandler)
   {
     try
     {
-      BookingEnitity booking = new(request.ResourceId, request.UserId, request.From, request.To);
+      BookingEntity booking = new(request.ResourceId, request.UserId, request.From, request.To);
 
        globalStateHandler.SaveBooking(booking);
 
-      return await Task.FromResult(TypedResults.Created("/bookings", new CreateBookingResponse(booking.Id)));
+      return await Task.FromResult(TypedResults.Created("/api/bookings", new CreateBookingResponse(booking.Id)));
     } catch (ArgumentOutOfRangeException)
     {
       return TypedResults.BadRequest();
@@ -72,7 +74,7 @@ internal static class ResourceEndpoints
     return TypedResults.Ok(bookingsDto);
   }
 
-  private static async Task<Results<NoContent, NotFound>> CancelBooking(BookingCancelRequeset request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<NoContent, NotFound>> CancelBooking(BookingCancelRequest request, IGlobalStateHandler globalStateHandler)
   {
     var booking = globalStateHandler.GetBooking(request.Id);
 

@@ -20,10 +20,8 @@ public class BookingCreateValidationFilter(IGlobalStateHandler globalStateHandle
 
       var bookingTimeError = otherBookings.Any(b =>
       {
-        var isFromInvalid = request.From < b.To && request.From >= b.From;
-        var isToInvalid = request.To > b.From && request.To <= b.To;
-
-        return isFromInvalid || isToInvalid;
+        var isValid = request.To <= b.From || request.From >= b.To || b.IsCanceled;
+        return !isValid;
       });
 
       if (bookingTimeError) return TypedResults.Conflict();

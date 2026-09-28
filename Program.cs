@@ -18,9 +18,10 @@ builder.Services.AddSingleton<IGlobalStateHandler, GlobalStateHandler>();
 
 var app = builder.Build();
 
-app.MapBookingsEndpoints();
-app.MapResourceEndpoints();
-app.MapUserEndpoints();
+var api = app.MapGroup("/api");
+api.MapBookingsEndpoints();
+api.MapResourceEndpoints();
+api.MapUserEndpoints();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

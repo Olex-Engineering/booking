@@ -5,11 +5,11 @@ using Booking.Domain.User;
 
 namespace Booking.Application.State;
 
-public sealed record GlobalState() : IGlobalState
+public sealed record GlobalState()
 {
   public ConcurrentDictionary<Guid, Resource> Resources { get; } = new();
 
   public ConcurrentDictionary<Guid, User> Users { get; } = new();
 
-  public ConcurrentDictionary<Guid, BookingEnitity> Bookings { get; } = new();
+  public ConcurrentDictionary<Guid, BookingEntity> Bookings { get; } = new();
 }

@@ -1,3 +1,3 @@
 namespace Booking.API.DTO.Resource;
 
-public sealed record CreateResourseResponse(Guid Id);
+public sealed record CreateResourceResponse(Guid Id);

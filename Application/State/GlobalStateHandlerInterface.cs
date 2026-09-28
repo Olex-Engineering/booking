@@ -7,14 +7,14 @@ namespace Booking.Application.State;
 
 public interface IGlobalStateHandler
 {
-  public void SaveBooking(BookingEnitity booking);
+  public void SaveBooking(BookingEntity booking);
   public void SaveResource(Resource resource);
   public void SaveUser(User user);
-  public void UpdateBooking(BookingEnitity booking);
+  public void UpdateBooking(BookingEntity booking);
 
   public User? GetUser(Guid id);
-  public BookingEnitity? GetBooking(Guid id);
+  public BookingEntity? GetBooking(Guid id);
   public Resource? GetResource(Guid id);
   public IEnumerable<Resource> GetResources(Guid? userId);
-  public IEnumerable<BookingEnitity> GetBookings(BookingFilters filters);
+  public IEnumerable<BookingEntity> GetBookings(BookingFilters filters);
 }

@@ -9,9 +9,9 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
 {
   private readonly GlobalState GlobalState = new();
 
-  public IEnumerable<BookingEnitity> GetBookings(BookingFilters filters)
+  public IEnumerable<BookingEntity> GetBookings(BookingFilters filters)
   {
-    IEnumerable<BookingEnitity> allBookings = GlobalState.Bookings.Values ?? [];
+    IEnumerable<BookingEntity> allBookings = GlobalState.Bookings.Values ?? [];
 
     return allBookings.Where(b =>
     {
@@ -51,19 +51,13 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
     });
   }
 
-  public BookingEnitity? GetBooking(Guid id) =>
+  public BookingEntity? GetBooking(Guid id) =>
     GlobalState.Bookings.TryGetValue(id, out var _booking) ? _booking : null;
   public Resource? GetResource(Guid id)
   {
     var resource = GlobalState.Resources.TryGetValue(id, out var _resource) ? _resource : null;
 
     if (resource is null) return null;
-
-    var allBookings = GlobalState.Bookings.Values;
-
-    if (allBookings is null) return resource;
-
-    resource.Bookings = [.. allBookings.Where(booking => booking.ResourceId == resource.Id)];
 
     return resource;
   }
@@ -80,7 +74,7 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
     return resources;
   }
 
-  public void UpdateBooking(BookingEnitity entity)
+  public void UpdateBooking(BookingEntity entity)
   {
     GlobalState.Bookings.AddOrUpdate(entity.Id, entity, (key, old) => entity);
   }
@@ -92,7 +86,7 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
     return GlobalState.Users.TryGetValue(id, out var user) ? user : null;
   }
 
-  public void SaveBooking(BookingEnitity booking)
+  public void SaveBooking(BookingEntity booking)
   {
     GlobalState.Bookings.TryAdd(booking.Id, booking);
   }

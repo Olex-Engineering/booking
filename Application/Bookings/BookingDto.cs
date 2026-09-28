@@ -12,6 +12,6 @@ public sealed record BookingDto(
   bool IsCanceled
 )
 {
-  public static BookingDto FromEntity(BookingEnitity b) =>
+  public static BookingDto FromEntity(BookingEntity b) =>
     new(b.Id, b.ResourceId, b.UserId, b.From, b.To, b.IsCompleted, b.IsCanceled);
 }

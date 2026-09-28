@@ -23,7 +23,7 @@ internal static class UserEndpoints
 
     stateHandler.SaveUser(user);
 
-    return await Task.FromResult(TypedResults.Created("/users", new CreateUserResponse(user.Id)));
+    return await Task.FromResult(TypedResults.Created("/api/users", new CreateUserResponse(user.Id)));
   }
 
   private static async Task<Results<Ok<UserDto>, NotFound>> GetUser(Guid id, IGlobalStateHandler stateHandler)
