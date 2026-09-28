@@ -1,5 +1,6 @@
 using Booking.Application.Bookings;
 using Booking.Domain.BookingEntity;
+using Booking.Domain.Common;
 using Booking.Domain.Resource;
 using Booking.Domain.User;
 
@@ -7,6 +8,8 @@ namespace Booking.Application.State;
 
 public sealed class GlobalStateHandler : IGlobalStateHandler
 {
+  private static SemaphoreSlim _lock = new(1, 1);
+
   private readonly GlobalState GlobalState = new();
 
   public IEnumerable<BookingEntity> GetBookings(BookingFilters filters)
@@ -73,12 +76,6 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
 
     return resources;
   }
-
-  public void UpdateBooking(BookingEntity entity)
-  {
-    GlobalState.Bookings.AddOrUpdate(entity.Id, entity, (key, old) => entity);
-  }
-
   public User? GetUser(Guid id)
   {
     Console.WriteLine(GlobalState.Users.Count);
@@ -86,9 +83,34 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
     return GlobalState.Users.TryGetValue(id, out var user) ? user : null;
   }
 
-  public void SaveBooking(BookingEntity booking)
+  public async Task<Result<Guid>> SaveBooking(BookingEntity booking)
   {
-    GlobalState.Bookings.TryAdd(booking.Id, booking);
+    await _lock.WaitAsync();
+    try
+    {
+      BookingFilters filters = new(ResourceId: booking.ResourceId);
+
+      var otherBookings = GetBookings(filters);
+
+      var bookingTimeError = otherBookings.Any(b =>
+      {
+        var isValid = booking.To <= b.From || booking.From >= b.To || b.IsCanceled;
+        return !isValid;
+      });
+
+      if (!bookingTimeError)
+      {
+        GlobalState.Bookings.TryAdd(booking.Id, booking);
+        return Result<Guid>.Ok(booking.Id);
+      } else
+      {
+        return Result<Guid>.Conflict();
+      }
+    }
+    finally
+    {
+        _lock.Release();
+    }
   }
 
   public void SaveResource(Resource resource)

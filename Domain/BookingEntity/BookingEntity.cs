@@ -26,6 +26,11 @@ public sealed class BookingEntity
     To = to;
   }
 
-  public void CancelBooking() => IsCanceled = true;
+  public void CancelBooking()
+  {
+    if (IsCompleted) throw new Exception("Booking already canceled");
+
+    IsCanceled = true;
+  }
 }
 

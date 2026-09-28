@@ -29,9 +29,7 @@ internal static class BookingEndpoints
       return result;
     }).WithTags("Bookings");
 
-    group.MapPost("/", CreateBooking)
-      .AddEndpointFilter<BookingCreateValidationFilter>()
-      .WithName("Create booking");
+    group.MapPost("/", CreateBooking).WithName("Create booking");
     group.MapPatch("/cancel", CancelBooking).WithName("Cancel booking");
     group.MapGet("/{id}", GetBooking).WithName("Get booking by id");
     group.MapGet("/list", GetList).WithName("Get booking list");
@@ -45,9 +43,15 @@ internal static class BookingEndpoints
     {
       BookingEntity booking = new(request.ResourceId, request.UserId, request.From, request.To);
 
-       globalStateHandler.SaveBooking(booking);
+      var result = await globalStateHandler.SaveBooking(booking);
 
-      return await Task.FromResult(TypedResults.Created("/api/bookings", new CreateBookingResponse(booking.Id)));
+      return result.Type switch
+      {
+        Domain.Common.ResultType.Ok => TypedResults.Created($"/api/bookings/{booking.Id}", new CreateBookingResponse(result.Value)),
+        Domain.Common.ResultType.Conflict => TypedResults.Conflict(),
+        _ => TypedResults.BadRequest(),
+      };
+
     } catch (ArgumentOutOfRangeException)
     {
       return TypedResults.BadRequest();
@@ -74,15 +78,19 @@ internal static class BookingEndpoints
     return TypedResults.Ok(bookingsDto);
   }
 
-  private static async Task<Results<NoContent, NotFound>> CancelBooking(BookingCancelRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<NoContent, NotFound, BadRequest<Exception>>> CancelBooking(BookingCancelRequest request, IGlobalStateHandler globalStateHandler)
   {
     var booking = globalStateHandler.GetBooking(request.Id);
 
     if (booking is null) return TypedResults.NotFound();
 
-    booking.CancelBooking();
-
-    globalStateHandler.UpdateBooking(booking);
+    try
+    {
+      booking.CancelBooking();
+    } catch (Exception error)
+    {
+      return TypedResults.BadRequest(error);
+    }
 
     return TypedResults.NoContent();
   }
