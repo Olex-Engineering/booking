@@ -8,7 +8,7 @@ namespace Booking.Application.State;
 
 public sealed class GlobalStateHandler : IGlobalStateHandler
 {
-  private static SemaphoreSlim _lock = new(1, 1);
+  private readonly SemaphoreSlim _lock = new(1, 1);
 
   private readonly GlobalState GlobalState = new();
 

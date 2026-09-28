@@ -25,7 +25,7 @@ internal static class ResourceEndpoints
 
     globalStateHandler.SaveResource(resource);
 
-    return await Task.FromResult(TypedResults.Created($"/api/resouces/{resource.Id}", new CreateResourceResponse(resource.Id)));
+    return await Task.FromResult(TypedResults.Created($"/api/resources/{resource.Id}", new CreateResourceResponse(resource.Id)));
   }
 
   private static async Task<Results<Ok<ResourceDto>, NotFound>> GetResource(Guid id, IGlobalStateHandler globalStateHandler)

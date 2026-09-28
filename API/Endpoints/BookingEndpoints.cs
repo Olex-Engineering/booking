@@ -2,7 +2,6 @@ namespace Booking.API.Endpoints;
 
 using System.Diagnostics;
 using Booking.API.DTO.Booking;
-using Booking.API.Filters;
 using Booking.Application.Bookings;
 using Booking.Application.State;
 using Booking.Domain.BookingEntity;
