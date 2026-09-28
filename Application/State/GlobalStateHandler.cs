@@ -101,10 +101,10 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
       if (!bookingTimeError)
       {
         GlobalState.Bookings.TryAdd(booking.Id, booking);
-        return Result<Guid>.Ok(booking.Id);
+        return new Result<Guid>.Ok(booking.Id);
       } else
       {
-        return Result<Guid>.Conflict();
+        return new Result<Guid>.Conflict();
       }
     }
     finally

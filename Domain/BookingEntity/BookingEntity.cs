@@ -1,3 +1,5 @@
+using Booking.Domain.Common;
+
 namespace Booking.Domain.BookingEntity;
 
 public sealed class BookingEntity
@@ -26,11 +28,12 @@ public sealed class BookingEntity
     To = to;
   }
 
-  public void CancelBooking()
+  public Result<Guid> CancelBooking()
   {
-    if (IsCompleted) throw new Exception("Booking already canceled");
+    if (IsCompleted) return new Result<Guid>.Conflict();
 
     IsCanceled = true;
+    return new Result<Guid>.Ok(Id);
   }
 }
 

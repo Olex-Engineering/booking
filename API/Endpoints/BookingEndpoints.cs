@@ -5,6 +5,7 @@ using Booking.API.DTO.Booking;
 using Booking.Application.Bookings;
 using Booking.Application.State;
 using Booking.Domain.BookingEntity;
+using Booking.Domain.Common;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 
@@ -44,11 +45,11 @@ internal static class BookingEndpoints
 
       var result = await globalStateHandler.SaveBooking(booking);
 
-      return result.Type switch
+      return result switch
       {
-        Domain.Common.ResultType.Ok => TypedResults.Created($"/api/bookings/{booking.Id}", new CreateBookingResponse(result.Value)),
-        Domain.Common.ResultType.Conflict => TypedResults.Conflict(),
-        _ => TypedResults.BadRequest(),
+        Result<Guid>.Ok ok => TypedResults.Created($"/api/bookings/{ok.Value}", new CreateBookingResponse(ok.Value)),
+        Result<Guid>.Conflict => TypedResults.Conflict(),
+        _ => throw new UnreachableException($"Unhandled result: {result.GetType().Name}"),
       };
 
     } catch (ArgumentOutOfRangeException)
@@ -77,20 +78,19 @@ internal static class BookingEndpoints
     return TypedResults.Ok(bookingsDto);
   }
 
-  private static async Task<Results<NoContent, NotFound, BadRequest<Exception>>> CancelBooking(BookingCancelRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<NoContent, NotFound, Conflict>> CancelBooking(BookingCancelRequest request, IGlobalStateHandler globalStateHandler)
   {
     var booking = globalStateHandler.GetBooking(request.Id);
 
     if (booking is null) return TypedResults.NotFound();
 
-    try
-    {
-      booking.CancelBooking();
-    } catch (Exception error)
-    {
-      return TypedResults.BadRequest(error);
-    }
+    var result = booking.CancelBooking();
 
-    return TypedResults.NoContent();
+    return result switch
+    {
+      Result<Guid>.Ok => TypedResults.NoContent(),
+      Result<Guid>.Conflict => TypedResults.Conflict(),
+      _ => throw new UnreachableException($"Unhandled result: {result.GetType().Name}"),
+    };
   }
 }
