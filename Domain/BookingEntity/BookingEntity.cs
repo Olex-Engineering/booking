@@ -1,0 +1,31 @@
+namespace Booking.Domain.BookingEntity;
+
+public sealed class BookingEnitity
+{
+  public const int MaxBookingDays = 30;
+  
+  public Guid Id { get; } = Guid.CreateVersion7();
+  public Guid ResourceId { get; }
+  public Guid UserId { get; }
+  public DateTimeOffset From { get; }
+  public DateTimeOffset To { get; }
+  public bool IsCanceled { get; private set; } = false;
+
+  public bool IsCompleted => DateTimeOffset.UtcNow > To && !IsCanceled;
+
+  public BookingEnitity(
+    Guid resourceId, Guid userId, DateTimeOffset from, DateTimeOffset to
+  )
+  {
+    ArgumentOutOfRangeException.ThrowIfGreaterThan(DateTimeOffset.UtcNow, from);
+    ArgumentOutOfRangeException.ThrowIfGreaterThan(from, to);
+
+    ResourceId = resourceId;
+    UserId = userId;
+    From = from;
+    To = to;
+  }
+
+  public void CancelBooking() => IsCanceled = true;
+}
+
