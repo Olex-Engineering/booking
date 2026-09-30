@@ -5,7 +5,7 @@ using Booking.Domain.User;
 
 namespace Booking.Application.State;
 
-public sealed record GlobalState()
+public sealed class GlobalState()
 {
   public ConcurrentDictionary<Guid, Resource> Resources { get; } = new();
 

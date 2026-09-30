@@ -19,9 +19,16 @@ internal static class ResourceEndpoints
     return app;
   }
 
-  private static async Task<Created<CreateResourceResponse>>  CreateResource(CreateResourceRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<Created<CreateResourceResponse>, BadRequest<string>>>  CreateResource(CreateResourceRequest request, IGlobalStateHandler globalStateHandler)
   {
-    Resource resource = new(request.ResourceType, request.Title, request.Description, request.UserId);
+    var (ResourceType, Title, Description, UserId) = request;
+
+    if (UserId == Guid.Empty)
+    {
+      return TypedResults.BadRequest("Guid cannot be empty.");
+    }
+
+    Resource resource = new(ResourceType, Title, Description, UserId);
 
     globalStateHandler.SaveResource(resource);
 

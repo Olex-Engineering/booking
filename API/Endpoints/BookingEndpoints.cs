@@ -6,6 +6,7 @@ using Booking.Application.Bookings;
 using Booking.Application.State;
 using Booking.Domain.BookingEntity;
 using Booking.Domain.Common;
+using Booking.Domain.User;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 
@@ -37,24 +38,32 @@ internal static class BookingEndpoints
     return app;
   }
 
-  private static async Task<Results<Created<CreateBookingResponse>,  BadRequest, Conflict>>  CreateBooking(CreateBookingRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<Created<CreateBookingResponse>,  BadRequest<string>, Conflict<string>>>  CreateBooking(CreateBookingRequest request, IGlobalStateHandler globalStateHandler)
   {
+    var (ResourceId, UserId, From, To) = request;
+
+    if (ResourceId == Guid.Empty || UserId == Guid.Empty)
+    {
+      return TypedResults.BadRequest("Guid cannot be empty.");
+    }
+
     try
     {
-      BookingEntity booking = new(request.ResourceId, request.UserId, request.From, request.To);
+      TimeInterval timeInterval = new(From, To);
+      BookingEntity booking = new(ResourceId, UserId, timeInterval);
 
       var result = await globalStateHandler.SaveBooking(booking);
 
-      return result switch
+      return result.Type switch
       {
-        Result<Guid>.Ok ok => TypedResults.Created($"/api/bookings/{ok.Value}", new CreateBookingResponse(ok.Value)),
-        Result<Guid>.Conflict => TypedResults.Conflict(),
-        _ => throw new UnreachableException($"Unhandled result: {result.GetType().Name}"),
+        ResultType.Ok => TypedResults.Created($"/api/bookings/{result.Value}", new CreateBookingResponse(result.Value)),
+        ResultType.Conflict => TypedResults.Conflict("Booking period conflict (from, to) with other bookings."),
+        _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
       };
 
     } catch (ArgumentOutOfRangeException)
     {
-      return TypedResults.BadRequest();
+      return TypedResults.BadRequest("From, to properties are wrong.");
     }
   }
 
@@ -86,11 +95,11 @@ internal static class BookingEndpoints
 
     var result = booking.CancelBooking();
 
-    return result switch
+    return result.Type switch
     {
-      Result<Guid>.Ok => TypedResults.NoContent(),
-      Result<Guid>.Conflict => TypedResults.Conflict(),
-      _ => throw new UnreachableException($"Unhandled result: {result.GetType().Name}"),
+      ResultType.Ok => TypedResults.NoContent(),
+      ResultType.Conflict => TypedResults.Conflict(),
+      _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
     };
   }
 }

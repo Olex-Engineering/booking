@@ -11,6 +11,9 @@ builder.Services.AddOpenApi();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
+  options.SerializerOptions.RespectNullableAnnotations = true;
+  options.SerializerOptions.RespectRequiredConstructorParameters = true;
+
   options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 

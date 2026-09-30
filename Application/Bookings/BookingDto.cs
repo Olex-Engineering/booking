@@ -13,5 +13,5 @@ public sealed record BookingDto(
 )
 {
   public static BookingDto FromEntity(BookingEntity b) =>
-    new(b.Id, b.ResourceId, b.UserId, b.From, b.To, b.IsCompleted, b.IsCanceled);
+    new(b.Id, b.ResourceId, b.UserId, b.TimeInterval.From, b.TimeInterval.To, b.IsCompleted, b.IsCanceled);
 }

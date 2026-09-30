@@ -32,12 +32,12 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
 
       if (filters.From is not null)
       {
-        isMatching = isMatching && b.From > filters.From;
+        isMatching = isMatching && b.TimeInterval.From >= filters.From;
       }
 
       if (filters.To is not null)
       {
-        isMatching = isMatching && b.To < filters.To;
+        isMatching = isMatching && b.TimeInterval.From <= filters.To;
       }
 
       if (filters.IsCanceled is not null)
@@ -93,18 +93,16 @@ public sealed class GlobalStateHandler : IGlobalStateHandler
       var otherBookings = GetBookings(filters);
 
       var bookingTimeError = otherBookings.Any(b =>
-      {
-        var isValid = booking.To <= b.From || booking.From >= b.To || b.IsCanceled;
-        return !isValid;
-      });
+       booking.TimeInterval.IsConflictedWith(b.TimeInterval) && !b.IsCanceled
+      );
 
       if (!bookingTimeError)
       {
         GlobalState.Bookings.TryAdd(booking.Id, booking);
-        return new Result<Guid>.Ok(booking.Id);
+        return Result<Guid>.Ok(booking.Id);
       } else
       {
-        return new Result<Guid>.Conflict();
+        return Result<Guid>.Conflict();
       }
     }
     finally
