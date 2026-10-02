@@ -8,10 +8,15 @@ public sealed record BookingDto(
   Guid UserId,
   DateTimeOffset From,
   DateTimeOffset To,
-  bool IsCompleted,
+  BookingStateType StateType,
   bool IsCanceled
 )
 {
-  public static BookingDto FromEntity(BookingEntity b) =>
-    new(b.Id, b.ResourceId, b.UserId, b.TimeInterval.From, b.TimeInterval.To, b.IsCompleted, b.IsCanceled);
+  public static BookingDto FromEntity(BookingEntity b, DateTimeOffset now)
+  {
+    var state = b.GetState(now);
+    var timeInterval = b.TimeInterval;
+
+    return new(b.Id, b.ResourceId, b.UserId, timeInterval.From, timeInterval.To, state, state == BookingStateType.Canceled);
+  }
 }

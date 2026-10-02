@@ -10,6 +10,9 @@ public sealed record Result<T>
     ? _value!
     : throw new InvalidOperationException($"Cannot read Value of a {Type} result");
 
+  public bool IsOk => Type == ResultType.Ok;
+  public bool IsError => Type == ResultType.Error || Type == ResultType.Conflict;
+
 
   private bool PrintMembers(System.Text.StringBuilder builder)
   {

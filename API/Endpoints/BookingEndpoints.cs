@@ -6,7 +6,6 @@ using Booking.Application.Bookings;
 using Booking.Application.State;
 using Booking.Domain.BookingEntity;
 using Booking.Domain.Common;
-using Booking.Domain.User;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 
@@ -32,13 +31,15 @@ internal static class BookingEndpoints
 
     group.MapPost("/", CreateBooking).WithName("Create booking");
     group.MapPatch("/cancel", CancelBooking).WithName("Cancel booking");
+    group.MapPatch("/reschedule", RescheduleBooking).WithName("Reschedule booking");
+    group.MapPatch("/confirm", ConfirmBooking).WithName("Confirm booking");
     group.MapGet("/{id}", GetBooking).WithName("Get booking by id");
     group.MapGet("/list", GetList).WithName("Get booking list");
 
     return app;
   }
 
-  private static async Task<Results<Created<CreateBookingResponse>,  BadRequest<string>, Conflict<string>>>  CreateBooking(CreateBookingRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<Created<CreateBookingResponse>,  BadRequest<string>, Conflict<string>, InternalServerError>>  CreateBooking(CreateBookingRequest request, IBookingsStateHandler bookingsRepository, TimeProvider timeProvider)
   {
     var (ResourceId, UserId, From, To) = request;
 
@@ -50,54 +51,87 @@ internal static class BookingEndpoints
     try
     {
       TimeInterval timeInterval = new(From, To);
-      BookingEntity booking = new(ResourceId, UserId, timeInterval);
+      BookingEntity booking = BookingEntity.Create(ResourceId, UserId, timeInterval, timeProvider.GetUtcNow());
 
-      var result = await globalStateHandler.SaveBooking(booking);
+      var result = await bookingsRepository.SaveBooking(booking);
 
       return result.Type switch
       {
         ResultType.Ok => TypedResults.Created($"/api/bookings/{result.Value}", new CreateBookingResponse(result.Value)),
         ResultType.Conflict => TypedResults.Conflict("Booking period conflict (from, to) with other bookings."),
-        _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
+        ResultType.Error => TypedResults.InternalServerError(),
+        _ => TypedResults.InternalServerError(),
       };
 
     } catch (ArgumentOutOfRangeException)
     {
-      return TypedResults.BadRequest("From, to properties are wrong.");
+      return TypedResults.BadRequest("From and to properties are wrong.");
     }
   }
 
-  private static async Task<Results<Ok<BookingDto>, NotFound>> GetBooking(Guid id, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<Ok<BookingDto>, NotFound>> GetBooking(Guid id, IBookingsStateHandler bookingsRepository, TimeProvider timeProvider)
   {
-    var booking = globalStateHandler.GetBooking(id);
+    var booking = bookingsRepository.GetBooking(id);
 
     if (booking is null)
     {
       return TypedResults.NotFound();
     }
 
-    return TypedResults.Ok(BookingDto.FromEntity(booking));
+    return TypedResults.Ok(BookingDto.FromEntity(booking, timeProvider.GetUtcNow()));
   }
 
-  private static async Task<Ok<IEnumerable<BookingDto>>> GetList([AsParameters] BookingFilters filters, IGlobalStateHandler globalStateHandler)
+  private static async Task<Ok<IEnumerable<BookingDto>>> GetList([AsParameters] BookingFilters filters, IBookingsStateHandler bookingsRepository, TimeProvider timeProvider)
   {
-    var bookings = globalStateHandler.GetBookings(filters);
-    var bookingsDto = bookings.Select(BookingDto.FromEntity);
+    var now = timeProvider.GetUtcNow();
+    var bookings = bookingsRepository.GetBookings(filters);
+    var bookingsDto = bookings.Select(b => BookingDto.FromEntity(b, now));
 
     return TypedResults.Ok(bookingsDto);
   }
 
-  private static async Task<Results<NoContent, NotFound, Conflict>> CancelBooking(BookingCancelRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<NoContent, NotFound, Conflict>> CancelBooking(BookingCancelRequest request, IBookingsStateHandler bookingsRepository)
   {
-    var booking = globalStateHandler.GetBooking(request.Id);
-
-    if (booking is null) return TypedResults.NotFound();
-
-    var result = booking.CancelBooking();
+    var result = await bookingsRepository.CancelBooking(request.Id);
 
     return result.Type switch
     {
       ResultType.Ok => TypedResults.NoContent(),
+      ResultType.Error => TypedResults.NotFound(),
+      ResultType.Conflict => TypedResults.Conflict(),
+      _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
+    };
+  }
+
+  private static async Task<Results<NoContent, BadRequest<string>, NotFound, Conflict>> RescheduleBooking(BookingRescheduleRequest request, IBookingsStateHandler bookingsRepository)
+  {
+    try
+    {
+      TimeInterval newTimeInterval = new(request.From, request.To);
+
+      var result = await bookingsRepository.RescheduleBooking(request.Id, newTimeInterval);
+
+      return result.Type switch
+      {
+        ResultType.Ok => TypedResults.NoContent(),
+        ResultType.Error => TypedResults.NotFound(),
+        ResultType.Conflict => TypedResults.Conflict(),
+        _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
+      };
+    } catch (ArgumentOutOfRangeException)
+    {
+      return TypedResults.BadRequest("From and to properties are wrong.");
+    }
+  }
+
+  private static async Task<Results<NoContent, NotFound, Conflict>> ConfirmBooking(BookingConfirmRequest request, IBookingsStateHandler bookingsRepository)
+  {
+    var result = await bookingsRepository.ConfirmBooking(request.Id);
+
+    return result.Type switch
+    {
+      ResultType.Ok => TypedResults.NoContent(),
+      ResultType.Error => TypedResults.NotFound(),
       ResultType.Conflict => TypedResults.Conflict(),
       _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
     };

@@ -19,25 +19,26 @@ internal static class ResourceEndpoints
     return app;
   }
 
-  private static async Task<Results<Created<CreateResourceResponse>, BadRequest<string>>>  CreateResource(CreateResourceRequest request, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<Created<CreateResourceResponse>, BadRequest<string>>>  CreateResource(CreateResourceRequest request, IResourcesStateHandler resourcesRepository)
   {
-    var (ResourceType, Title, Description, UserId) = request;
+    var (ResourceType, Title, Description, UserId, CancellationWindowInHours, RescheduleWindowInHours) = request;
 
-    if (UserId == Guid.Empty)
+    try
     {
-      return TypedResults.BadRequest("Guid cannot be empty.");
+      Resource resource = Resource.Create(ResourceType, Title, Description, UserId, CancellationWindowInHours, RescheduleWindowInHours);
+      resourcesRepository.SaveResource(resource);
+
+      return  TypedResults.Created($"/api/resources/{resource.Id}", new CreateResourceResponse(resource.Id));
     }
-
-    Resource resource = new(ResourceType, Title, Description, UserId);
-
-    globalStateHandler.SaveResource(resource);
-
-    return await Task.FromResult(TypedResults.Created($"/api/resources/{resource.Id}", new CreateResourceResponse(resource.Id)));
+    catch (Exception ex)
+    {
+      return TypedResults.BadRequest(ex.Message);
+    }
   }
 
-  private static async Task<Results<Ok<ResourceDto>, NotFound>> GetResource(Guid id, IGlobalStateHandler globalStateHandler)
+  private static async Task<Results<Ok<ResourceDto>, NotFound>> GetResource(Guid id, IResourcesStateHandler resourcesRepository)
   {
-    var resource = globalStateHandler.GetResource(id);
+    var resource = resourcesRepository.GetResource(id);
 
     if (resource is null)
     {
@@ -47,9 +48,9 @@ internal static class ResourceEndpoints
     return TypedResults.Ok(ResourceDto.FromEntity(resource));
   }
 
-  private static async Task<Ok<IEnumerable<ResourceDto>>> GetList(Guid? userId, IGlobalStateHandler globalStateHandler)
+  private static async Task<Ok<IEnumerable<ResourceDto>>> GetList(Guid? userId, IResourcesStateHandler resourcesRepository)
   {
-    var resouces = globalStateHandler.GetResources(userId).Select(ResourceDto.FromEntity);
+    var resouces = resourcesRepository.GetResources(userId).Select(ResourceDto.FromEntity);
 
     return TypedResults.Ok(resouces);
   }

@@ -1,7 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Booking.Domain.Common;
-public readonly record struct TimeInterval
+
+public sealed record TimeInterval
 {
   public DateTimeOffset From { get; }
   public DateTimeOffset To { get; }
@@ -9,11 +8,9 @@ public readonly record struct TimeInterval
   public TimeSpan Interval => To - From;
 
 
-  [JsonConstructor]
   public TimeInterval(DateTimeOffset from, DateTimeOffset to)
   {
-    ArgumentOutOfRangeException.ThrowIfGreaterThan(DateTimeOffset.UtcNow, from);
-    ArgumentOutOfRangeException.ThrowIfGreaterThan(from, to);
+    ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(from, to);
 
     From = from;
     To = to;

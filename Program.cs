@@ -17,7 +17,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
   options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-builder.Services.AddSingleton<IGlobalStateHandler, GlobalStateHandler>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IStateContext, GlobalState>();
+
+builder.Services.AddScoped<IBookingsStateHandler, BookingsRepository>();
+builder.Services.AddScoped<IResourcesStateHandler, ResourcesRepository>();
+builder.Services.AddScoped<IUserStateHandler, UsersRepository>();
+
+
 
 var app = builder.Build();
 

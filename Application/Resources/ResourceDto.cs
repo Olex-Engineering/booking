@@ -7,8 +7,10 @@ public sealed record ResourceDto(
   ResourceType ResourceType,
   string Title,
   string Description,
-  Guid UserId
+  Guid UserId,
+  int? CancellationWindowInHours,
+  int? RescheduleWindowInHours
 ) {
   public static ResourceDto FromEntity(Resource r) =>
-    new(r.Id, r.ResourceType, r.Title, r.Description, r.UserId); 
+    new(r.Id, r.Type, r.Title, r.Description, r.UserId, r.CancellationWindowInHours, r.RescheduleWindowInHours); 
 }
