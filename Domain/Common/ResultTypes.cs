@@ -4,5 +4,5 @@ public enum ResultType
 {
   Ok,
   Conflict,
-  Error
+  NotFound
 }

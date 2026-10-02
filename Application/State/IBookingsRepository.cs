@@ -4,7 +4,7 @@ using Booking.Domain.Common;
 
 namespace Booking.Application.State;
 
-public interface IBookingsStateHandler
+public interface IBookingsRepository
 {
   public Task<Result<Guid>> SaveBooking(BookingEntity booking);
   public BookingEntity? GetBooking(Guid id);

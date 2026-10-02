@@ -2,7 +2,7 @@ using Booking.Domain.User;
 
 namespace Booking.Application.State;
 
-public sealed class UsersRepository(IStateContext stateContext) : IUserStateHandler
+public sealed class UsersRepository(IStateContext stateContext) : IUsersRepository
 {
   public User? GetUser(Guid id)
   {

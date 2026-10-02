@@ -28,6 +28,8 @@ public sealed class BookingEntity
   public bool IsActive(DateTimeOffset now) =>
     GetState(now) is BookingStateType.Pending or BookingStateType.Confirmed;
 
+  public bool IsPending(DateTimeOffset now) => GetState(now) == BookingStateType.Pending;
+
   public void Cancel(DateTimeOffset now)
   {
     if (!IsActive(now)) throw new InvalidOperationException("Cannot cancel a booking that is not active.");
@@ -37,7 +39,7 @@ public sealed class BookingEntity
 
   public void Confirm(DateTimeOffset now)
   {
-    if (GetState(now) != BookingStateType.Pending) throw new InvalidOperationException("Cannot confirm a booking that is not pending.");
+    if (!IsPending(now)) throw new InvalidOperationException("Cannot confirm a booking that is not pending.");
 
     _state = BookingStateType.Confirmed;
   }
@@ -49,6 +51,7 @@ public sealed class BookingEntity
     if (!IsActive(now)) throw new InvalidOperationException("Cannot reschedule a booking that is not active.");
 
     TimeInterval = newTimeInterval;
+    _state = BookingStateType.Pending;
   }
 
   public static BookingEntity Create(Guid resourceId, Guid userId, TimeInterval timeInterval, DateTimeOffset now)

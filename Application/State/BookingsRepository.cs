@@ -4,7 +4,7 @@ using Booking.Domain.Common;
 
 namespace Booking.Application.State;
 
-public sealed class BookingsRepository(IStateContext stateContext, TimeProvider timeProvider) : IBookingsStateHandler
+public sealed class BookingsRepository(IStateContext stateContext, TimeProvider timeProvider) : IBookingsRepository
 {
   public IEnumerable<BookingEntity> GetBookings(BookingFilters filters)
   {
@@ -50,73 +50,57 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
       var now = timeProvider.GetUtcNow();
       var booking = GetBooking(bookingId);
 
-      if (booking is null) return Result<Guid>.Error();
+      if (booking is null) return Result<Guid>.NotFound("Booking not found.");
 
       var resource = stateContext.GetResource(booking.ResourceId);
 
-      if (resource is null) return Result<Guid>.Error();
+      if (resource is null) return Result<Guid>.NotFound("Booking resource not found.");
 
-      if (!resource.ValidateBookingRescheduleWindow(booking.TimeInterval.From, now)) return Result<Guid>.Conflict();
+      if (!booking.IsActive(now)) return Result<Guid>.Conflict("Only a pending or confirmed booking can be rescheduled.");
 
-      if (HasConflict(booking.ResourceId, newTimeInterval, now, booking.Id)) return Result<Guid>.Conflict();
+      if (!resource.ValidateBookingRescheduleWindow(booking.TimeInterval.From, now)) return Result<Guid>.Conflict("Reschedule window has passed.");
 
-      try
-      {
-        booking.Reschedule(newTimeInterval, now);
-        stateContext.SaveBooking(booking);
+      if (HasConflict(booking.ResourceId, newTimeInterval, now, booking.Id)) return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
 
-        return Result<Guid>.Ok(booking.Id);
-      } catch (InvalidOperationException)
-      {
-        return Result<Guid>.Conflict();
-      }
+      booking.Reschedule(newTimeInterval, now);
+
+      return Result<Guid>.Ok(booking.Id);
     });
 
   public Task<Result<Guid>> ConfirmBooking(Guid bookingId) =>
     stateContext.ExecuteLocked(() =>
     {
+      var now = timeProvider.GetUtcNow();
       var booking = GetBooking(bookingId);
 
-      if (booking is null) return Result<Guid>.Error();
-      try
-      {
-        booking.Confirm(timeProvider.GetUtcNow());
-        stateContext.SaveBooking(booking);
+      if (booking is null) return Result<Guid>.NotFound("Booking not found.");
 
-        return Result<Guid>.Ok(booking.Id);
-      }
-      catch (InvalidOperationException)
-      {
-        return Result<Guid>.Conflict();
-      }
+      if (!booking.IsPending(now)) return Result<Guid>.Conflict("Only a pending booking can be confirmed.");
+
+      booking.Confirm(now);
+
+      return Result<Guid>.Ok(booking.Id);
     });
 
   public Task<Result<Guid>> CancelBooking(Guid bookingId) =>
     stateContext.ExecuteLocked(() =>
     {
+      var now = timeProvider.GetUtcNow();
       var booking = GetBooking(bookingId);
 
-      if (booking is null) return Result<Guid>.Error();
+      if (booking is null) return Result<Guid>.NotFound("Booking not found.");
 
       var resource = stateContext.GetResource(booking.ResourceId);
 
-      if (resource is null) return Result<Guid>.Error();
+      if (resource is null) return Result<Guid>.NotFound("Booking resource not found.");
 
-      var now = timeProvider.GetUtcNow();
+      if (!booking.IsActive(now)) return Result<Guid>.Conflict("Only a pending or confirmed booking can be canceled.");
 
-      if (!resource.ValidateBookingCancellationWindow(booking.TimeInterval.From, now)) return Result<Guid>.Conflict();
+      if (!resource.ValidateBookingCancellationWindow(booking.TimeInterval.From, now)) return Result<Guid>.Conflict("Cancellation window has passed.");
 
-      try
-      {
-        booking.Cancel(now);
-        stateContext.SaveBooking(booking);
+      booking.Cancel(now);
 
-        return Result<Guid>.Ok(booking.Id);
-      }
-      catch
-      {
-        return Result<Guid>.Conflict();
-      }
+      return Result<Guid>.Ok(booking.Id);
     });
 
   public BookingEntity? GetBooking(Guid id) =>
@@ -125,16 +109,14 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
   public Task<Result<Guid>> SaveBooking(BookingEntity booking) =>
     stateContext.ExecuteLocked(() =>
     {
-      var bookingTimeError = HasConflict(booking.ResourceId, booking.TimeInterval, timeProvider.GetUtcNow());
-
-      if (!bookingTimeError)
+      if (HasConflict(booking.ResourceId, booking.TimeInterval, timeProvider.GetUtcNow()))
       {
-        stateContext.SaveBooking(booking);
-        return Result<Guid>.Ok(booking.Id);
-      } else
-      {
-        return Result<Guid>.Conflict();
+        return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
       }
+
+      stateContext.SaveBooking(booking);
+
+      return Result<Guid>.Ok(booking.Id);
     });
 
   private bool HasConflict(Guid resourceId, TimeInterval timeInterval, DateTimeOffset now, Guid? excludeBookingId = null) =>

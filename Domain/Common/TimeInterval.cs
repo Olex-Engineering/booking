@@ -5,8 +5,6 @@ public sealed record TimeInterval
   public DateTimeOffset From { get; }
   public DateTimeOffset To { get; }
 
-  public TimeSpan Interval => To - From;
-
 
   public TimeInterval(DateTimeOffset from, DateTimeOffset to)
   {

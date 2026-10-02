@@ -18,15 +18,23 @@ internal static class UserEndpoints
     return app;
   }
 
-  private static async Task<Created<CreateUserResponse>> CreateUser(CreateUserRequest request, IUserStateHandler userRepository) {
-    User user = new(request.Name);
+  private static async Task<Results<Created<CreateUserResponse>, BadRequest<string>>> CreateUser(CreateUserRequest request, IUsersRepository userRepository)
+  {
+    try
+    {
+      User user = User.Create(request.Name);
 
-    userRepository.SaveUser(user);
+      userRepository.SaveUser(user);
 
-    return await Task.FromResult(TypedResults.Created($"/api/users/{user.Id}", new CreateUserResponse(user.Id)));
+      return TypedResults.Created($"/api/users/{user.Id}", new CreateUserResponse(user.Id));
+    }
+    catch (ArgumentException ex)
+    {
+      return TypedResults.BadRequest(ex.Message);
+    }
   }
 
-  private static async Task<Results<Ok<UserDto>, NotFound>> GetUser(Guid id, IUserStateHandler userRepository)
+  private static async Task<Results<Ok<UserDto>, NotFound>> GetUser(Guid id, IUsersRepository userRepository)
   {
     var user = userRepository.GetUser(id);
 

@@ -20,9 +20,9 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IStateContext, GlobalState>();
 
-builder.Services.AddScoped<IBookingsStateHandler, BookingsRepository>();
-builder.Services.AddScoped<IResourcesStateHandler, ResourcesRepository>();
-builder.Services.AddScoped<IUserStateHandler, UsersRepository>();
+builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
+builder.Services.AddScoped<IResourcesRepository, ResourcesRepository>();
+builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 
 
 

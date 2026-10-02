@@ -39,7 +39,7 @@ internal static class BookingEndpoints
     return app;
   }
 
-  private static async Task<Results<Created<CreateBookingResponse>,  BadRequest<string>, Conflict<string>, InternalServerError>>  CreateBooking(CreateBookingRequest request, IBookingsStateHandler bookingsRepository, TimeProvider timeProvider)
+  private static async Task<Results<Created<CreateBookingResponse>, BadRequest<string>, Conflict<string>>> CreateBooking(CreateBookingRequest request, IBookingsRepository bookingsRepository, TimeProvider timeProvider)
   {
     var (ResourceId, UserId, From, To) = request;
 
@@ -58,9 +58,8 @@ internal static class BookingEndpoints
       return result.Type switch
       {
         ResultType.Ok => TypedResults.Created($"/api/bookings/{result.Value}", new CreateBookingResponse(result.Value)),
-        ResultType.Conflict => TypedResults.Conflict("Booking period conflict (from, to) with other bookings."),
-        ResultType.Error => TypedResults.InternalServerError(),
-        _ => TypedResults.InternalServerError(),
+        ResultType.Conflict => TypedResults.Conflict(result.Message),
+        _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
       };
 
     } catch (ArgumentOutOfRangeException)
@@ -69,7 +68,7 @@ internal static class BookingEndpoints
     }
   }
 
-  private static async Task<Results<Ok<BookingDto>, NotFound>> GetBooking(Guid id, IBookingsStateHandler bookingsRepository, TimeProvider timeProvider)
+  private static async Task<Results<Ok<BookingDto>, NotFound>> GetBooking(Guid id, IBookingsRepository bookingsRepository, TimeProvider timeProvider)
   {
     var booking = bookingsRepository.GetBooking(id);
 
@@ -81,7 +80,7 @@ internal static class BookingEndpoints
     return TypedResults.Ok(BookingDto.FromEntity(booking, timeProvider.GetUtcNow()));
   }
 
-  private static async Task<Ok<IEnumerable<BookingDto>>> GetList([AsParameters] BookingFilters filters, IBookingsStateHandler bookingsRepository, TimeProvider timeProvider)
+  private static async Task<Ok<IEnumerable<BookingDto>>> GetList([AsParameters] BookingFilters filters, IBookingsRepository bookingsRepository, TimeProvider timeProvider)
   {
     var now = timeProvider.GetUtcNow();
     var bookings = bookingsRepository.GetBookings(filters);
@@ -90,20 +89,14 @@ internal static class BookingEndpoints
     return TypedResults.Ok(bookingsDto);
   }
 
-  private static async Task<Results<NoContent, NotFound, Conflict>> CancelBooking(BookingCancelRequest request, IBookingsStateHandler bookingsRepository)
+  private static async Task<Results<NoContent, NotFound<string>, Conflict<string>>> CancelBooking(BookingCancelRequest request, IBookingsRepository bookingsRepository)
   {
     var result = await bookingsRepository.CancelBooking(request.Id);
 
-    return result.Type switch
-    {
-      ResultType.Ok => TypedResults.NoContent(),
-      ResultType.Error => TypedResults.NotFound(),
-      ResultType.Conflict => TypedResults.Conflict(),
-      _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
-    };
+    return ToActionResult(result);
   }
 
-  private static async Task<Results<NoContent, BadRequest<string>, NotFound, Conflict>> RescheduleBooking(BookingRescheduleRequest request, IBookingsStateHandler bookingsRepository)
+  private static async Task<Results<NoContent, BadRequest<string>, NotFound<string>, Conflict<string>>> RescheduleBooking(BookingRescheduleRequest request, IBookingsRepository bookingsRepository)
   {
     try
     {
@@ -114,8 +107,8 @@ internal static class BookingEndpoints
       return result.Type switch
       {
         ResultType.Ok => TypedResults.NoContent(),
-        ResultType.Error => TypedResults.NotFound(),
-        ResultType.Conflict => TypedResults.Conflict(),
+        ResultType.NotFound => TypedResults.NotFound(result.Message),
+        ResultType.Conflict => TypedResults.Conflict(result.Message),
         _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
       };
     } catch (ArgumentOutOfRangeException)
@@ -124,16 +117,19 @@ internal static class BookingEndpoints
     }
   }
 
-  private static async Task<Results<NoContent, NotFound, Conflict>> ConfirmBooking(BookingConfirmRequest request, IBookingsStateHandler bookingsRepository)
+  private static async Task<Results<NoContent, NotFound<string>, Conflict<string>>> ConfirmBooking(BookingConfirmRequest request, IBookingsRepository bookingsRepository)
   {
     var result = await bookingsRepository.ConfirmBooking(request.Id);
 
-    return result.Type switch
+    return ToActionResult(result);
+  }
+
+  private static Results<NoContent, NotFound<string>, Conflict<string>> ToActionResult(Result<Guid> result) =>
+    result.Type switch
     {
       ResultType.Ok => TypedResults.NoContent(),
-      ResultType.Error => TypedResults.NotFound(),
-      ResultType.Conflict => TypedResults.Conflict(),
+      ResultType.NotFound => TypedResults.NotFound(result.Message),
+      ResultType.Conflict => TypedResults.Conflict(result.Message),
       _ => throw new UnreachableException($"Unhandled result type: {result.Type}"),
     };
-  }
 }

@@ -2,7 +2,7 @@ using Booking.Domain.Resource;
 
 namespace Booking.Application.State;
 
-public sealed class ResourcesRepository(IStateContext stateContext): IResourcesStateHandler
+public sealed class ResourcesRepository(IStateContext stateContext): IResourcesRepository
 {
   public Resource? GetResource(Guid id) => stateContext.GetResource(id);
 
