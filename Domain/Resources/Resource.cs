@@ -1,4 +1,4 @@
-namespace Booking.Domain.Resource;
+namespace Booking.Domain.Resources;
 
 public sealed class Resource
 {
@@ -40,10 +40,10 @@ public sealed class Resource
     return new Resource(type, title, description, userId, cancellationWindow, rescheduleWindow);
   }
 
-  public bool ValidateBookingCancellationWindow(DateTimeOffset bookingFrom, DateTimeOffset now) =>
+  public bool IsCancellationWindowValid(DateTimeOffset bookingFrom, DateTimeOffset now) =>
     IsOutsideWindow(bookingFrom, now, CancellationWindowInHours);
 
-  public bool ValidateBookingRescheduleWindow(DateTimeOffset bookingFrom, DateTimeOffset now) =>
+  public bool IsRescheduleWindowValid(DateTimeOffset bookingFrom, DateTimeOffset now) =>
     IsOutsideWindow(bookingFrom, now, RescheduleWindowInHours);
 
   private static bool IsOutsideWindow(DateTimeOffset bookingFrom, DateTimeOffset now, int windowInHours) =>

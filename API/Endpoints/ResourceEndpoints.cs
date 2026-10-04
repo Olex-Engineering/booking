@@ -1,7 +1,7 @@
 using Booking.API.DTO.Resource;
 using Booking.Application.Resources;
 using Booking.Application.State;
-using Booking.Domain.Resource;
+using Booking.Domain.Resources;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Booking.API.Endpoints;
@@ -13,7 +13,7 @@ internal static class ResourceEndpoints
     var group = app.MapGroup("/resources").WithTags("Resources");
 
     group.MapPost("/", CreateResource).WithName("Create resource");
-    group.MapGet("/{id}", GetResource).WithName("Get resource by id");
+    group.MapGet("/{id:guid}", GetResource).WithName("Get resource by id");
     group.MapGet("/list", GetList).WithName("Get resource list");
 
     return app;
@@ -50,8 +50,8 @@ internal static class ResourceEndpoints
 
   private static async Task<Ok<IEnumerable<ResourceDto>>> GetList(Guid? userId, IResourcesRepository resourcesRepository)
   {
-    var resouces = resourcesRepository.GetResources(userId).Select(ResourceDto.FromEntity);
+    var resources = resourcesRepository.GetResources(userId).Select(ResourceDto.FromEntity);
 
-    return TypedResults.Ok(resouces);
+    return TypedResults.Ok(resources);
   }
 }

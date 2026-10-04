@@ -1,4 +1,4 @@
-using Booking.Domain.Resource;
+using Booking.Domain.Resources;
 
 namespace Booking.API.DTO.Resource;
 

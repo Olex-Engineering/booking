@@ -1,5 +1,5 @@
 using Booking.Application.Bookings;
-using Booking.Domain.BookingEntity;
+using Booking.Domain.Bookings;
 using Booking.Domain.Common;
 
 namespace Booking.Application.State;

@@ -1,4 +1,4 @@
-using Booking.Domain.User;
+using Booking.Domain.Users;
 
 namespace Booking.Application.State;
 

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using Booking.Domain.BookingEntity;
-using Booking.Domain.Resource;
-using Booking.Domain.User;
+using Booking.Domain.Bookings;
+using Booking.Domain.Resources;
+using Booking.Domain.Users;
 
 namespace Booking.Application.State;
 
@@ -28,7 +28,7 @@ public sealed class GlobalState() : IStateContext
     }
   }
 
-  public ICollection<BookingEntity> GetAllBookings()
+  public IEnumerable<BookingEntity> GetAllBookings()
   {
     return Bookings.Values;
   }

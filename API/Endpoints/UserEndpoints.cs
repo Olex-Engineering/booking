@@ -1,7 +1,7 @@
 using Booking.API.DTO.User;
 using Booking.Application.State;
 using Booking.Application.Users;
-using Booking.Domain.User;
+using Booking.Domain.Users;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Booking.API.Endpoints;
@@ -13,7 +13,7 @@ internal static class UserEndpoints
     var group = app.MapGroup("/users").WithTags("Users");
 
     group.MapPost("/", CreateUser).WithName("Create user");
-    group.MapGet("/{id}", GetUser).WithName("User By Id");
+    group.MapGet("/{id:guid}", GetUser).WithName("User By Id");
 
     return app;
   }

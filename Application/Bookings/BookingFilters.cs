@@ -1,4 +1,4 @@
-using Booking.Domain.BookingEntity;
+using Booking.Domain.Bookings;
 
 namespace Booking.Application.Bookings;
 

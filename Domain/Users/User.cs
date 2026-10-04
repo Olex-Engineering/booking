@@ -1,4 +1,4 @@
-namespace Booking.Domain.User;
+namespace Booking.Domain.Users;
 
 public sealed class User
 {

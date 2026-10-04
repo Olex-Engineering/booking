@@ -1,12 +1,12 @@
-using Booking.Domain.BookingEntity;
-using Booking.Domain.Resource;
-using Booking.Domain.User;
+using Booking.Domain.Bookings;
+using Booking.Domain.Resources;
+using Booking.Domain.Users;
 
 namespace Booking.Application.State;
 
 public interface IStateContext
 {
-  ICollection<BookingEntity> GetAllBookings();
+  IEnumerable<BookingEntity> GetAllBookings();
   BookingEntity? GetBooking(Guid id);
   Resource? GetResource(Guid id);
   IEnumerable<Resource> GetResources();

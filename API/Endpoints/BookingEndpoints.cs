@@ -4,7 +4,7 @@ using System.Diagnostics;
 using Booking.API.DTO.Booking;
 using Booking.Application.Bookings;
 using Booking.Application.State;
-using Booking.Domain.BookingEntity;
+using Booking.Domain.Bookings;
 using Booking.Domain.Common;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -33,7 +33,7 @@ internal static class BookingEndpoints
     group.MapPatch("/cancel", CancelBooking).WithName("Cancel booking");
     group.MapPatch("/reschedule", RescheduleBooking).WithName("Reschedule booking");
     group.MapPatch("/confirm", ConfirmBooking).WithName("Confirm booking");
-    group.MapGet("/{id}", GetBooking).WithName("Get booking by id");
+    group.MapGet("/{id:guid}", GetBooking).WithName("Get booking by id");
     group.MapGet("/list", GetList).WithName("Get booking list");
 
     return app;

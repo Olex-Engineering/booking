@@ -1,6 +1,6 @@
 using Booking.Domain.Common;
 
-namespace Booking.Domain.BookingEntity;
+namespace Booking.Domain.Bookings;
 
 public sealed class BookingEntity
 {
@@ -21,7 +21,7 @@ public sealed class BookingEntity
   public BookingStateType GetState(DateTimeOffset now) => _state switch
   {
     BookingStateType.Confirmed when now > TimeInterval.To => BookingStateType.Completed,
-    BookingStateType.Pending when now > TimeInterval.To => BookingStateType.Expired,
+    BookingStateType.Pending when now > TimeInterval.From => BookingStateType.Expired,
     _ => _state
   };
 
@@ -30,9 +30,11 @@ public sealed class BookingEntity
 
   public bool IsPending(DateTimeOffset now) => GetState(now) == BookingStateType.Pending;
 
-  public void Cancel(DateTimeOffset now)
+  public void Cancel(DateTimeOffset now, int cancellationWindowInHours)
   {
-    if (!IsActive(now)) throw new InvalidOperationException("Cannot cancel a booking that is not active.");
+    if (!IsTimeWindowValid(now, cancellationWindowInHours)) throw new InvalidOperationException("Cannot cancel a booking that is not within the cancellation window.");
+
+    if (!IsActive(now)) throw new InvalidOperationException("Only a pending or confirmed booking can be canceled.");
 
     _state = BookingStateType.Canceled;
   }
@@ -44,9 +46,11 @@ public sealed class BookingEntity
     _state = BookingStateType.Confirmed;
   }
 
-  public void Reschedule(TimeInterval newTimeInterval, DateTimeOffset now)
+  public void Reschedule(TimeInterval newTimeInterval, DateTimeOffset now, int rescheduleWindowInHours)
   {
     ArgumentOutOfRangeException.ThrowIfGreaterThan(now, newTimeInterval.From);
+
+    if (!IsTimeWindowValid(now, rescheduleWindowInHours)) throw new InvalidOperationException("Cannot reschedule a booking that is not within the reschedule window.");
 
     if (!IsActive(now)) throw new InvalidOperationException("Cannot reschedule a booking that is not active.");
 
@@ -60,4 +64,7 @@ public sealed class BookingEntity
 
     return new BookingEntity(resourceId, userId, timeInterval);
   }
+
+  private bool IsTimeWindowValid(DateTimeOffset now, int windowInHours) =>
+    TimeInterval.From >= now.AddHours(windowInHours);
 }

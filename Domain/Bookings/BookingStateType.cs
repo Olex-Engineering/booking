@@ -1,4 +1,4 @@
-namespace Booking.Domain.BookingEntity;
+namespace Booking.Domain.Bookings;
 
 public enum BookingStateType
 {
