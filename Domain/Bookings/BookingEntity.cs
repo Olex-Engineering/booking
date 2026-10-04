@@ -32,9 +32,9 @@ public sealed class BookingEntity
 
   public void Cancel(DateTimeOffset now, int cancellationWindowInHours)
   {
-    if (!IsTimeWindowValid(now, cancellationWindowInHours)) throw new InvalidOperationException("Cannot cancel a booking that is not within the cancellation window.");
-
     if (!IsActive(now)) throw new InvalidOperationException("Only a pending or confirmed booking can be canceled.");
+    
+    if (!IsTimeWindowValid(now, cancellationWindowInHours)) throw new InvalidOperationException("Cannot cancel a booking that is not within the cancellation window.");
 
     _state = BookingStateType.Canceled;
   }
@@ -50,9 +50,9 @@ public sealed class BookingEntity
   {
     ArgumentOutOfRangeException.ThrowIfGreaterThan(now, newTimeInterval.From);
 
-    if (!IsTimeWindowValid(now, rescheduleWindowInHours)) throw new InvalidOperationException("Cannot reschedule a booking that is not within the reschedule window.");
-
     if (!IsActive(now)) throw new InvalidOperationException("Cannot reschedule a booking that is not active.");
+
+    if (!IsTimeWindowValid(now, rescheduleWindowInHours)) throw new InvalidOperationException("Cannot reschedule a booking that is not within the reschedule window.");
 
     TimeInterval = newTimeInterval;
     _state = BookingStateType.Pending;

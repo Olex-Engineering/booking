@@ -40,15 +40,6 @@ public sealed class Resource
     return new Resource(type, title, description, userId, cancellationWindow, rescheduleWindow);
   }
 
-  public bool IsCancellationWindowValid(DateTimeOffset bookingFrom, DateTimeOffset now) =>
-    IsOutsideWindow(bookingFrom, now, CancellationWindowInHours);
-
-  public bool IsRescheduleWindowValid(DateTimeOffset bookingFrom, DateTimeOffset now) =>
-    IsOutsideWindow(bookingFrom, now, RescheduleWindowInHours);
-
-  private static bool IsOutsideWindow(DateTimeOffset bookingFrom, DateTimeOffset now, int windowInHours) =>
-    bookingFrom >= now.AddHours(windowInHours);
-
   private static int DefaultWindowInHours(ResourceType type) => type switch
   {
     ResourceType.Master => 24,
