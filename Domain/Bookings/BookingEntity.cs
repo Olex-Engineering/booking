@@ -4,7 +4,9 @@ namespace Booking.Domain.Bookings;
 
 public sealed class BookingEntity
 {
-  public BookingStateType state { get; private set;} = BookingStateType.Pending;
+  public static readonly BookingStateType[] ActiveStates = [BookingStateType.Pending, BookingStateType.Confirmed];
+
+  public BookingStateType State { get; private set;} = BookingStateType.Pending;
 
   public Guid Id { get; } = Guid.CreateVersion7();
   public Guid ResourceId { get; }
@@ -18,10 +20,10 @@ public sealed class BookingEntity
     TimeInterval = timeInterval;
   }
 
-  public bool IsActive(DateTimeOffset now) =>
-    state is BookingStateType.Pending or BookingStateType.Confirmed;
+  // TODO: Remove after bg service is implemented.
+  public bool IsActive(DateTimeOffset now) => IsPending(now) || State == BookingStateType.Confirmed;
 
-  public bool IsPending(DateTimeOffset now) => state == BookingStateType.Pending;
+  public bool IsPending(DateTimeOffset now) => State == BookingStateType.Pending && TimeInterval.From > now;
 
   public void Cancel(DateTimeOffset now, int cancellationWindowInHours)
   {
@@ -29,14 +31,14 @@ public sealed class BookingEntity
     
     if (!IsTimeWindowValid(now, cancellationWindowInHours)) throw new InvalidOperationException("Cannot cancel a booking that is not within the cancellation window.");
 
-    state = BookingStateType.Canceled;
+    State = BookingStateType.Canceled;
   }
 
   public void Confirm(DateTimeOffset now)
   {
     if (!IsPending(now)) throw new InvalidOperationException("Cannot confirm a booking that is not pending.");
 
-    state = BookingStateType.Confirmed;
+    State = BookingStateType.Confirmed;
   }
 
   public void Reschedule(TimeInterval newTimeInterval, DateTimeOffset now, int rescheduleWindowInHours)
@@ -48,7 +50,7 @@ public sealed class BookingEntity
     if (!IsTimeWindowValid(now, rescheduleWindowInHours)) throw new InvalidOperationException("Cannot reschedule a booking that is not within the reschedule window.");
 
     TimeInterval = newTimeInterval;
-    state = BookingStateType.Pending;
+    State = BookingStateType.Pending;
   }
 
   public static BookingEntity Create(Guid resourceId, Guid userId, TimeInterval timeInterval, DateTimeOffset now)

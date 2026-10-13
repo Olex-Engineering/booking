@@ -6,10 +6,9 @@ namespace Booking.Application.State;
 
 public sealed class BookingsRepository(IStateContext stateContext, TimeProvider timeProvider) : IBookingsRepository
 {
-  public IEnumerable<BookingEntity> GetBookings(BookingFilters filters)
+  public IReadOnlyList<BookingEntity> GetBookings(BookingFilters filters)
   {
     IQueryable<BookingEntity> allBookings = stateContext.GetAllBookings();
-    var now = timeProvider.GetUtcNow();
 
     IQueryable<BookingEntity> query = allBookings;
 
@@ -35,7 +34,7 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
 
     if (filters.InStateType is { Length: > 0 })
     {
-      query = query.Where(b => filters.InStateType.Contains(b.state));
+      query = query.Where(b => filters.InStateType.Contains(b.State));
     }
 
     return query.ToList();
@@ -124,6 +123,5 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
     stateContext.GetAllBookings()
     .Where(b => b.ResourceId == resourceId && b.Id != excludeBookingId)
     .OnlyActive()
-    .ToList()
-    .Any(b => b.TimeInterval.IsConflictedWith(timeInterval));
+    .Any(b => !(b.TimeInterval.To <= timeInterval.From || b.TimeInterval.From >= timeInterval.To));
 }
