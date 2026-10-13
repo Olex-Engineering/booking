@@ -4,8 +4,7 @@ namespace Booking.Domain.Bookings;
 
 public sealed class BookingEntity
 {
-  public static readonly BookingStateType[] ActiveStates = [BookingStateType.Pending, BookingStateType.Confirmed];
-
+  // Stored state. Expired and Completed are never stored, use GetState(now) for the actual one.
   public BookingStateType State { get; private set;} = BookingStateType.Pending;
 
   public Guid Id { get; } = Guid.CreateVersion7();
@@ -20,10 +19,18 @@ public sealed class BookingEntity
     TimeInterval = timeInterval;
   }
 
-  // TODO: Remove after bg service is implemented.
-  public bool IsActive(DateTimeOffset now) => IsPending(now) || State == BookingStateType.Confirmed;
+  // Keep in sync with BookingQueryExtensions, which repeats these rules for db queries.
+  public BookingStateType GetState(DateTimeOffset now) => State switch
+  {
+    BookingStateType.Confirmed when now > TimeInterval.To => BookingStateType.Completed,
+    BookingStateType.Pending when now > TimeInterval.From => BookingStateType.Expired,
+    _ => State
+  };
 
-  public bool IsPending(DateTimeOffset now) => State == BookingStateType.Pending && TimeInterval.From > now;
+  public bool IsActive(DateTimeOffset now) =>
+    GetState(now) is BookingStateType.Pending or BookingStateType.Confirmed;
+
+  public bool IsPending(DateTimeOffset now) => GetState(now) == BookingStateType.Pending;
 
   public void Cancel(DateTimeOffset now, int cancellationWindowInHours)
   {

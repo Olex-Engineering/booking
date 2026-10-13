@@ -34,7 +34,7 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
 
     if (filters.InStateType is { Length: > 0 })
     {
-      query = query.Where(b => filters.InStateType.Contains(b.State));
+      query = query.InStates(filters.InStateType, timeProvider.GetUtcNow());
     }
 
     return query.ToList();
@@ -52,7 +52,7 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
 
       if (resource is null) return Result<Guid>.NotFound("Booking resource not found.");
 
-      if (HasConflict(booking.ResourceId, newTimeInterval, booking.Id)) return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
+      if (HasConflict(booking.ResourceId, newTimeInterval, now, booking.Id)) return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
 
       try
       {
@@ -73,11 +73,16 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
 
       if (booking is null) return Result<Guid>.NotFound("Booking not found.");
 
-      if (!booking.IsPending(now)) return Result<Guid>.Conflict("Only a pending booking can be confirmed.");
+      try
+      {
+        booking.Confirm(now);
 
-      booking.Confirm(now);
-
-      return Result<Guid>.Ok(booking.Id);
+        return Result<Guid>.Ok(booking.Id);
+      }
+      catch (InvalidOperationException ex)
+      {
+        return Result<Guid>.Conflict(ex.Message);
+      }
     });
 
   public Task<Result<Guid>> CancelBooking(Guid bookingId) =>
@@ -109,7 +114,7 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
   public Task<Result<Guid>> SaveBooking(BookingEntity booking) =>
     stateContext.ExecuteLocked(() =>
     {
-      if (HasConflict(booking.ResourceId, booking.TimeInterval))
+      if (HasConflict(booking.ResourceId, booking.TimeInterval, timeProvider.GetUtcNow()))
       {
         return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
       }
@@ -119,9 +124,9 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
       return Result<Guid>.Ok(booking.Id);
     });
 
-  private bool HasConflict(Guid resourceId, TimeInterval timeInterval, Guid? excludeBookingId = null) =>
+  private bool HasConflict(Guid resourceId, TimeInterval timeInterval, DateTimeOffset now, Guid? excludeBookingId = null) =>
     stateContext.GetAllBookings()
     .Where(b => b.ResourceId == resourceId && b.Id != excludeBookingId)
-    .OnlyActive()
+    .OnlyActive(now)
     .Any(b => !(b.TimeInterval.To <= timeInterval.From || b.TimeInterval.From >= timeInterval.To));
 }

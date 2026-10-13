@@ -13,7 +13,4 @@ public sealed record TimeInterval
     From = from;
     To = to;
   }
-
-  public bool IsConflictedWith(TimeInterval interval) => 
-    !(To <= interval.From || From >= interval.To);
 }
