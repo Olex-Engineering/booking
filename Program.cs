@@ -25,8 +25,8 @@ builder.Services.AddScoped<IResourcesRepository, ResourcesRepository>();
 builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 
 
-
 var app = builder.Build();
+
 
 var api = app.MapGroup("/api");
 api.MapBookingsEndpoints();
@@ -43,3 +43,4 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.Run();
+

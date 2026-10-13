@@ -15,6 +15,6 @@ public sealed record BookingDto(
   {
     var timeInterval = b.TimeInterval;
 
-    return new(b.Id, b.ResourceId, b.UserId, timeInterval.From, timeInterval.To, b.GetState(now));
+    return new(b.Id, b.ResourceId, b.UserId, timeInterval.From, timeInterval.To, b.state);
   }
 }

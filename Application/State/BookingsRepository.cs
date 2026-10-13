@@ -8,40 +8,37 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
 {
   public IEnumerable<BookingEntity> GetBookings(BookingFilters filters)
   {
-    IEnumerable<BookingEntity> allBookings = stateContext.GetAllBookings();
+    IQueryable<BookingEntity> allBookings = stateContext.GetAllBookings();
     var now = timeProvider.GetUtcNow();
 
-    return allBookings.Where(b =>
+    IQueryable<BookingEntity> query = allBookings;
+
+    if (filters.ResourceId is not null)
     {
-      bool isMatching = true;
+      query = query.Where(b => b.ResourceId == filters.ResourceId);
+    }
 
-      if (filters.ResourceId is not null)
-      {
-        isMatching = isMatching && b.ResourceId == filters.ResourceId;
-      }
+    if (filters.UserId is not null)
+    {
+      query = query.Where(b => b.UserId == filters.UserId);
+    }
 
-      if (filters.UserId is not null)
-      {
-        isMatching = isMatching && b.UserId == filters.UserId;
-      }
+    if (filters.From is not null)
+    {
+      query = query.Where(b => b.TimeInterval.To >= filters.From);
+    }
 
-      if (filters.From is not null)
-      {
-        isMatching = isMatching && b.TimeInterval.To >= filters.From;
-      } 
+    if (filters.To is not null)
+    {
+      query = query.Where(b => b.TimeInterval.From <= filters.To);
+    }
 
-      if (filters.To is not null)
-      {
-        isMatching = isMatching && b.TimeInterval.From <= filters.To;
-      }
+    if (filters.InStateType is { Length: > 0 })
+    {
+      query = query.Where(b => filters.InStateType.Contains(b.state));
+    }
 
-      if (filters.InStateType is { Length: > 0 })
-      {
-        isMatching = isMatching && filters.InStateType.Contains(b.GetState(now));
-      }
-
-      return isMatching;
-    });
+    return query.ToList();
   }
 
   public Task<Result<Guid>> RescheduleBooking(Guid bookingId, TimeInterval newTimeInterval) =>
@@ -56,7 +53,7 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
 
       if (resource is null) return Result<Guid>.NotFound("Booking resource not found.");
 
-      if (HasConflict(booking.ResourceId, newTimeInterval, now, booking.Id)) return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
+      if (HasConflict(booking.ResourceId, newTimeInterval, booking.Id)) return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
 
       try
       {
@@ -113,7 +110,7 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
   public Task<Result<Guid>> SaveBooking(BookingEntity booking) =>
     stateContext.ExecuteLocked(() =>
     {
-      if (HasConflict(booking.ResourceId, booking.TimeInterval, timeProvider.GetUtcNow()))
+      if (HasConflict(booking.ResourceId, booking.TimeInterval))
       {
         return Result<Guid>.Conflict("Booking period conflict (from, to) with other bookings.");
       }
@@ -123,10 +120,10 @@ public sealed class BookingsRepository(IStateContext stateContext, TimeProvider 
       return Result<Guid>.Ok(booking.Id);
     });
 
-  private bool HasConflict(Guid resourceId, TimeInterval timeInterval, DateTimeOffset now, Guid? excludeBookingId = null) =>
-    stateContext.GetAllBookings().Any(b =>
-      b.ResourceId == resourceId
-      && b.Id != excludeBookingId
-      && b.IsActive(now)
-      && b.TimeInterval.IsConflictedWith(timeInterval));
+  private bool HasConflict(Guid resourceId, TimeInterval timeInterval, Guid? excludeBookingId = null) =>
+    stateContext.GetAllBookings()
+    .Where(b => b.ResourceId == resourceId && b.Id != excludeBookingId)
+    .OnlyActive()
+    .ToList()
+    .Any(b => b.TimeInterval.IsConflictedWith(timeInterval));
 }

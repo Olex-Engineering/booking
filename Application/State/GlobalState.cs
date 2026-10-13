@@ -28,9 +28,9 @@ public sealed class GlobalState() : IStateContext
     }
   }
 
-  public IEnumerable<BookingEntity> GetAllBookings()
+  public IQueryable<BookingEntity> GetAllBookings()
   {
-    return Bookings.Values;
+    return Bookings.Values.AsQueryable();
   }
 
   public BookingEntity? GetBooking(Guid id) =>
@@ -39,7 +39,7 @@ public sealed class GlobalState() : IStateContext
   public Resource? GetResource(Guid id)
     => Resources.TryGetValue(id, out var _resource) ? _resource : null;
 
-  public IEnumerable<Resource> GetResources() => Resources.Values;
+  public IQueryable<Resource> GetResources() => Resources.Values.AsQueryable();
 
   public User? GetUser(Guid id) => Users.TryGetValue(id, out var user) ? user : null;
 

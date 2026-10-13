@@ -6,10 +6,10 @@ namespace Booking.Application.State;
 
 public interface IStateContext
 {
-  IEnumerable<BookingEntity> GetAllBookings();
+  IQueryable<BookingEntity> GetAllBookings();
   BookingEntity? GetBooking(Guid id);
   Resource? GetResource(Guid id);
-  IEnumerable<Resource> GetResources();
+  IQueryable<Resource> GetResources();
   User? GetUser(Guid id);
   void SaveBooking(BookingEntity booking);
   void SaveResource(Resource resource);
